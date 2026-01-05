@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#0f766e" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+
+  <link rel="manifest" href="manifest.json" />
+  <link rel="apple-touch-icon" href="icons/icon-192.png" />
+  <link rel="icon" href="icons/icon-192.png" />
+
+  <title>Alkohol-Tracker (PWA)</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header>
+    <h1>Alkohol‑Tracker</h1>
+    <p class="subtitle">Protokolliere deinen Konsum und sieh dir einfache Auswertungen an. Alle Daten bleiben <strong>nur lokal</strong> auf deinem Gerät.</p>
+  </header>
+
+  <main>
+    <section class="card">
+      <h2>Eintrag hinzufügen</h2>
+      <form id="entry-form">
+        <div class="grid">
+          <label>
+            <span>Datum & Zeit</span>
+            <input type="datetime-local" id="dt" required />
+          </label>
+          <label>
+            <span>Getränketyp</span>
+            <input type="text" id="type" list="type-suggestions" placeholder="z. B. Bier, Wein, Schnaps" />
+            <datalist id="type-suggestions">
+              <option value="Bier"></option>
+              <option value="Wein"></option>
+              <option value="Sekt"></option>
+              <option value="Schnaps"></option>
+              <option value="Cocktail"></option>
+            </datalist>
+          </label>
+          <label>
+            <span>Menge (ml)</span>
+            <input type="number" id="ml" min="0" step="1" placeholder="z. B. 500" required />
+          </label>
+          <label>
+            <span>Vol.-% (ABV)</span>
+            <input type="number" id="abv" min="0" max="100" step="0.1" placeholder="z. B. 5" required />
+          </label>
+        </div>
+        <div class="actions">
+          <button type="submit" class="primary">Eintrag speichern</button>
+          <button type="button" id="reset-form" class="ghost">Felder leeren</button>
+        </div>
+      </form>
+      <p class="hint">Formel: Gramm reiner Alkohol = ml × (ABV/100) × 0,789</p>
+    </section>
+
+    <section class="card">
+      <h2>Deine Einträge</h2>
+      <div class="filters">
+        <label>
+          Von: <input type="date" id="from-date" />
+        </label>
+        <label>
+          Bis: <input type="date" id="to-date" />
+        </label>
+        <button id="apply-filter" class="ghost">Filter anwenden</button>
+        <button id="clear-filter" class="ghost">Filter löschen</button>
+      </div>
+      <table id="entries-table">
+        <thead>
+          <tr>
+            <th>Datum</th>
+            <th>Typ</th>
+            <th>ml</th>
+            <th>Vol.-%</th>
+            <th>g Alkohol</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+      <div class="actions">
+        <button id="export-json">Export (JSON)</button>
+        <button id="export-csv">Export (CSV)</button>
+        <label class="file-button">
+          Import (JSON)
+          <input type="file" id="import-json" accept="application/json" hidden />
+        </label>
+        <button id="delete-all" class="danger">Alle Daten löschen</button>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Statistiken</h2>
+      <div class="stats-grid">
+        <div class="stat">
+          <div class="stat-label">Heute</div>
+          <div class="stat-value" id="stat-today">0 g</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">Diese Woche</div>
+          <div class="stat-value" id="stat-week">0 g</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">Dieser Monat</div>
+          <div class="stat-value" id="stat-month">0 g</div>
+        </div>
+      </div>
+
+      <div class="charts">
+        <div class="chart-card">
+          <h3>Filter-Zeitraum (täglich)</h3>
+          <p class="hint">Durchschnitt: <strong id="avg-filter">–</strong> pro Tag · Gesamtsumme: <strong id="sum-filter">–</strong></p>
+          <canvas id="chartFiltered" height="160"></canvas>
+        </div>
+        <div class="chart-card">
+          <h3>Letzte 30 Tage (täglich)</h3>
+          <canvas id="chartDaily" height="160"></canvas>
+        </div>
+        <div class="chart-card">
+          <h3>Letzte 12 Wochen (Wochensumme)</h3>
+          <canvas id="chartWeekly" height="160"></canvas>
+        </div>
+        <div class="chart-card">
+          <h3>Verteilung nach Getränketyp</h3>
+          <canvas id="chartTypes" height="140"></canvas>
+        </div>
+      </div>
+    </section>
+
+    <section class="card small">
+      <details>
+        <summary>Hinweise & Datenschutz</summary>
+        <p>Diese PWA speichert deine Daten ausschließlich lokal im <em>LocalStorage</em> deines Browsers. Es gibt keinen Server und keine Übertragung. Du kannst jederzeit eine JSON‑Datei exportieren und später wieder importieren.</p>
+        <p>Diese App dient der Selbstbeobachtung und ersetzt keine medizinische Beratung.</p>
+      </details>
+    </section>
+  </main>
+
+  <footer>
+    <small>© 2026 Alkohol‑Tracker PWA – lokal & offline. Version 1.2.0</small>
+  </footer>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script src="app.js"></script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./service-worker.js').catch(console.error);
+      });
+    }
+  </script>
+</body>
+</html>
